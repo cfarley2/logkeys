@@ -200,7 +200,7 @@ abs_builddir = /home/corinne/WHI/logkeys/build/scripts
 abs_srcdir = /home/corinne/WHI/logkeys/build/../scripts
 abs_top_builddir = /home/corinne/WHI/logkeys/build
 abs_top_srcdir = /home/corinne/WHI/logkeys/build/..
-ac_ct_CXX = g++
+ac_ct_CXX = g++ -std=c++11 -E
 am__include = include
 am__leading_dot = .
 am__quote = 
