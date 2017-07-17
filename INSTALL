@@ -29,7 +29,6 @@ Build and Install
 
     $ ./autogen.sh     # generate files for build
     $ cd build         # keeps the root and src dirs clean
-    $ ../configure
 
     $ make
     $ su               # get root to install in system
