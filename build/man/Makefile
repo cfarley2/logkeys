@@ -156,8 +156,8 @@ AUTOHEADER = autoheader
 AUTOMAKE = automake-1.15
 AWK = mawk
 CPPFLAGS = 
-CXX = g++
-CXXCPP = g++ -E
+CXX = g++ -std=c++11 -E
+CXXCPP = g++ -std=c++11 -E
 CXXDEPMODE = depmode=gcc3
 CXXFLAGS = -g -O2
 CYGPATH_W = echo
@@ -201,7 +201,7 @@ abs_builddir = /home/corinne/WHI/logkeys/build/man
 abs_srcdir = /home/corinne/WHI/logkeys/build/../man
 abs_top_builddir = /home/corinne/WHI/logkeys/build
 abs_top_srcdir = /home/corinne/WHI/logkeys/build/..
-ac_ct_CXX = g++
+ac_ct_CXX = g++ -std=c++11 -E
 am__include = include
 am__leading_dot = .
 am__quote = 
